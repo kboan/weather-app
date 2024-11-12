@@ -1,0 +1,16 @@
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Editor directories
+.vscode/
+.idea/
+
+# Node.js (if you’re using Node for another project)
+node_modules/
+
+# Sensitive files
+config.js
+.env
