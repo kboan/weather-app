@@ -3,21 +3,97 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Weather App</title>
+    <title>Just Weather</title>
     <link rel="stylesheet" href="styles.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
   </head>
+
   <body>
-    <div class="container">
-      <h1>Weather App</h1>
-      <div class="search">
-        <input type="text" id="city-input" placeholder="Enter city name" />
-        <button onclick="getWeather()">Get Weather</button>
+    <div class="popular-cities">
+      <button onclick="getWeather('New York')">New York</button>
+      <button onclick="getWeather('London')">London</button>
+      <button onclick="getWeather('Paris')">Paris</button>
+      <button onclick="getWeather('Tokyo')">Tokyo</button>
+      <button onclick="getWeather('Sydney')">Sydney</button>
+      <button onclick="getWeather('Dubai')">Dubai</button>
+    </div>
+    <div class="app-container">
+      <!-- Header with Search Bar and Unit Toggle -->
+      <header>
+        <h1>Just Weather</h1>
+        <input type="text" id="city-input" placeholder="Search for cities" />
+        <button onclick="getWeather()">Search</button>
+        <button onclick="randomCity()">Random City</button>
+        <button id="unit-toggle" onclick="toggleUnits()">°C / °F</button>
+      </header>
+
+      <div id="loading-spinner" class="loading-spinner" style="display: none">
+        Loading...
       </div>
-      <div id="weather-result" class="weather-result">
-        <!-- Weather data will be displayed here -->
-      </div>
+
+      <!-- Main Weather Information -->
+      <main>
+        <!-- Current Weather -->
+        <section class="current-weather">
+          <h2 id="city-name"></h2>
+          <div class="temperature">
+            <span id="temperature"></span>°<span id="unit">C</span>
+          </div>
+          <div id="description"></div>
+        </section>
+
+        <!-- Hourly Forecast -->
+        <section class="forecast">
+          <h3>Today's Forecast</h3>
+          <div class="forecast-grid" id="forecast"></div>
+        </section>
+
+        <!-- Detailed Weather Info -->
+        <section class="weather-details">
+          <div class="detail-card">
+            <span>Sunrise</span>
+            <span id="sunrise"></span>
+          </div>
+          <div class="detail-card">
+            <span>Sunset</span>
+            <span id="sunset"></span>
+          </div>
+          <div class="detail-card">
+            <span>Wind</span>
+            <span id="wind"></span>
+          </div>
+          <div class="detail-card">
+            <span>Pressure</span>
+            <span id="pressure"></span>
+          </div>
+          <div class="detail-card">
+            <span>Feels Like</span>
+            <span id="feels-like"></span>
+          </div>
+          <div class="detail-card">
+            <span>Visibility</span>
+            <span id="visibility"></span>
+          </div>
+        </section>
+
+        <!-- Temperature Chart -->
+        <section class="chart-section">
+          <h3>Temperature Throughout the Day</h3>
+          <canvas id="temperatureChart"></canvas>
+        </section>
+
+        <!-- Rain Chance Chart -->
+        <section class="chart-section">
+          <h3>Chance of Rain Throughout the Day</h3>
+          <canvas id="rainChart"></canvas>
+        </section>
+      </main>
     </div>
 
     <script src="script.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </body>
 </html>
