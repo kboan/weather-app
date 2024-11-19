@@ -79,16 +79,19 @@
           </div>
         </section>
 
-        <!-- Temperature Chart -->
-        <section class="chart-section">
-          <h3>Temperature Throughout the Day</h3>
-          <canvas id="temperatureChart"></canvas>
-        </section>
+        <!-- Five-Day Forecast -->
+        <div id="five-day-forecast">
+          <h2>Five Day Forecast</h2>
+          <div id="five-day-container"></div>
+        </div>
 
-        <!-- Rain Chance Chart -->
-        <section class="chart-section">
-          <h3>Chance of Rain Throughout the Day</h3>
-          <canvas id="rainChart"></canvas>
+        <!-- Temperature Chart -->
+        <section id="charts-section" style="display: none">
+          <h3>Daily Temperature and Rainfall</h3>
+          <div class="chart-container">
+            <canvas id="temperatureChart"></canvas>
+            <canvas id="rainChart"></canvas>
+          </div>
         </section>
       </main>
     </div>

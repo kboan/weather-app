@@ -3,6 +3,7 @@ let unit = "metric";
 let temperatureChart, rainChart;
 const apiKey = "a14899a2584eacf5e8c21c713bcc3f14"; // Replace with your OpenWeather API key
 
+// Initialize the app with a default city
 function initializeApp() {
   const defaultCity = "New York";
   getWeather(defaultCity);
@@ -31,7 +32,7 @@ async function getWeather(city = document.getElementById("city-input").value) {
     const forecastData = await forecastResponse.json();
     displayForecast(forecastData);
     displayWeatherDetails(data);
-    updateCharts(forecastData); // Pass forecastData to updateCharts
+    displayFiveDayForecast(forecastData); // Pass forecast data for the 5-day forecast
   } catch (error) {
     console.error("Error fetching weather data:", error);
   } finally {
@@ -53,7 +54,7 @@ function displayCurrentWeather(data) {
   document.getElementById("city-input").value = data.name;
 }
 
-// Function to display forecast data
+// Function to display forecast data for "Today's Forecast" section
 function displayForecast(data) {
   const forecastContainer = document.getElementById("forecast");
   forecastContainer.innerHTML = "";
@@ -111,74 +112,82 @@ function displayWeatherDetails(data) {
   document.getElementById("visibility").textContent = visibility;
 }
 
-// Function to toggle between metric and imperial units
-function toggleUnits() {
-  unit = unit === "metric" ? "imperial" : "metric";
+// Function to display the 5-day forecast
+function displayFiveDayForecast(data) {
+  const fiveDayContainer = document.getElementById("five-day-container");
+  fiveDayContainer.innerHTML = "";
 
-  // Re-fetch the weather for the current city with the new unit
-  getWeather(document.getElementById("city-input").value);
+  // Group forecast data by day
+  const dailyData = {};
+  data.list.forEach((entry) => {
+    const date = new Date(entry.dt * 1000).toISOString().split("T")[0];
+    if (!dailyData[date]) {
+      dailyData[date] = {
+        temps: [],
+        weather: entry.weather[0],
+        date: date,
+      };
+    }
+    dailyData[date].temps.push(entry.main.temp);
+  });
+
+  // Display the first 5 days
+  Object.values(dailyData)
+    .slice(0, 5)
+    .forEach((day) => {
+      const avgTemp =
+        day.temps.reduce((sum, temp) => sum + temp, 0) / day.temps.length;
+      const iconURL = `https://openweathermap.org/img/wn/${day.weather.icon}@2x.png`;
+      const weatherDescription = day.weather.description;
+
+      const dayElement = document.createElement("div");
+      dayElement.classList.add("forecast-day");
+      dayElement.setAttribute("data-date", day.date); // Add data-date attribute
+
+      dayElement.innerHTML = `
+        <h4>${new Date(day.date).toLocaleDateString(undefined, {
+          weekday: "long",
+        })}</h4>
+        <img src="${iconURL}" alt="${weatherDescription}">
+        <p>${Math.round(avgTemp)}°${unit === "metric" ? "C" : "F"}</p>
+        <p>${weatherDescription}</p>
+      `;
+
+      dayElement.addEventListener("click", () => {
+        // Mark this day as selected
+        document
+          .querySelectorAll(".forecast-day")
+          .forEach((el) => el.classList.remove("selected"));
+        dayElement.classList.add("selected");
+
+        // Update charts for the selected day
+        updateChartsForDay(
+          data.list.filter((entry) => entry.dt_txt.startsWith(day.date))
+        );
+        document.getElementById("charts-section").style.display = "block";
+      });
+
+      fiveDayContainer.appendChild(dayElement);
+    });
 }
 
-// Function to get a random city from a list and fetch its weather
-function randomCity() {
-  const cities = [
-    "New York",
-    "London",
-    "Paris",
-    "Tokyo",
-    "Sydney",
-    "Moscow",
-    "Beijing",
-    "Dubai",
-    "Rome",
-    "Berlin",
-    "Toronto",
-    "Los Angeles",
-    "Mexico City",
-    "Mumbai",
-    "Istanbul",
-  ];
-
-  const randomIndex = Math.floor(Math.random() * cities.length);
-  const city = cities[randomIndex];
-  getWeather(city);
-}
-
-function formatTime(unixTimestamp) {
-  const date = new Date(unixTimestamp * 1000);
-  const hours = date.getHours();
-  const minutes = "0" + date.getMinutes();
-
-  if (unit === "imperial") {
-    // Standard 12-hour format with AM/PM
-    const suffix = hours >= 12 ? "PM" : "AM";
-    const standardHours = hours % 12 || 12; // Convert 0 to 12 for AM/PM format
-    return `${standardHours}:${minutes.substr(-2)} ${suffix}`;
-  } else {
-    // Military 24-hour format
-    return `${hours.toString().padStart(2, "0")}:${minutes.substr(-2)}`;
-  }
-}
-
-function updateCharts(data) {
+// Function to update charts for a selected day
+function updateChartsForDay(entries) {
   const labels = [];
   const temperatureData = [];
   const rainChanceData = [];
 
-  data.list.slice(0, 8).forEach((forecast) => {
-    const formattedTime = formatTime(forecast.dt);
-
+  entries.forEach((entry) => {
+    const formattedTime = formatTime(entry.dt);
     labels.push(formattedTime);
-    temperatureData.push(forecast.main.temp);
-    rainChanceData.push(forecast.pop * 100); // Assuming 'pop' is the probability of precipitation
+    temperatureData.push(entry.main.temp);
+    rainChanceData.push(entry.pop * 100); // Precipitation probability
   });
 
-  const tempUnitLabel = unit === "metric" ? "°C" : "°F"; // Set label based on unit
+  const tempUnitLabel = unit === "metric" ? "°C" : "°F";
 
-  // Temperature Chart
-  if (temperatureChart) {
-    temperatureChart.destroy();
-  }
+  // Update Temperature Chart
+  if (temperatureChart) temperatureChart.destroy();
   const temperatureCtx = document
     .getElementById("temperatureChart")
     .getContext("2d");
@@ -188,7 +197,7 @@ function updateCharts(data) {
       labels: labels,
       datasets: [
         {
-          label: "Temperature (" + tempUnitLabel + ")", // Dynamic label using concatenation
+          label: `Temperature (${tempUnitLabel})`,
           data: temperatureData,
           borderColor: "#6a11cb",
           backgroundColor: "rgba(106, 17, 203, 0.2)",
@@ -198,21 +207,16 @@ function updateCharts(data) {
       ],
     },
     options: {
-      aspectRatio: 2, // Adjust aspect ratio
+      responsive: true,
       scales: {
         x: { title: { display: true, text: "Time of Day" } },
-        y: {
-          title: { display: true, text: "Temperature (" + tempUnitLabel + ")" },
-        },
+        y: { title: { display: true, text: `Temperature (${tempUnitLabel})` } },
       },
-      responsive: true,
     },
   });
 
-  // Rain Chance Chart
-  if (rainChart) {
-    rainChart.destroy();
-  }
+  // Update Rain Chart
+  if (rainChart) rainChart.destroy();
   const rainCtx = document.getElementById("rainChart").getContext("2d");
   rainChart = new Chart(rainCtx, {
     type: "bar",
@@ -223,24 +227,89 @@ function updateCharts(data) {
           label: "Chance of Rain (%)",
           data: rainChanceData,
           backgroundColor: "rgba(106, 17, 203, 0.7)",
-          borderColor: "#6a11cb",
-          borderWidth: 1,
         },
       ],
     },
     options: {
-      aspectRatio: 2, // Adjust aspect ratio
+      responsive: true,
       scales: {
-        x: { title: { display: true, text: "Time of Day" } },
         y: {
           title: { display: true, text: "Chance of Rain (%)" },
-          beginAtZero: true,
+          min: 0,
           max: 100,
         },
       },
-      responsive: true,
     },
   });
+}
+
+// Utility function to format time
+function formatTime(unixTimestamp) {
+  const date = new Date(unixTimestamp * 1000);
+  const hours = date.getHours();
+  const minutes = "0" + date.getMinutes();
+
+  if (unit === "imperial") {
+    const suffix = hours >= 12 ? "PM" : "AM";
+    const standardHours = hours % 12 || 12;
+    return `${standardHours}:${minutes.substr(-2)} ${suffix}`;
+  } else {
+    return `${hours.toString().padStart(2, "0")}:${minutes.substr(-2)}`;
+  }
+}
+
+// Function to toggle units between metric and imperial
+function toggleUnits() {
+  unit = unit === "metric" ? "imperial" : "metric";
+
+  // Re-fetch the weather and forecast data to update the page
+  const currentCity = document.getElementById("city-input").value;
+  getWeather(currentCity);
+
+  // If charts are visible, update them to reflect the new units
+  const chartsSection = document.getElementById("charts-section");
+  if (chartsSection.style.display !== "none") {
+    // Get the currently selected day's data from the 5-day forecast
+    const selectedDay = document.querySelector(".forecast-day.selected");
+    if (selectedDay) {
+      const selectedDate = selectedDay.getAttribute("data-date");
+      updateChartsForSelectedDay(selectedDate, currentCity);
+    }
+  }
+}
+
+// Helper function to update charts for the selected day and city
+async function updateChartsForSelectedDay(selectedDate, city) {
+  const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${apiKey}&units=${unit}`;
+
+  try {
+    const forecastResponse = await fetch(forecastUrl);
+    const forecastData = await forecastResponse.json();
+    const selectedDayData = forecastData.list.filter((entry) =>
+      entry.dt_txt.startsWith(selectedDate)
+    );
+    updateChartsForDay(selectedDayData);
+  } catch (error) {
+    console.error("Error updating charts for selected day:", error);
+  }
+}
+
+// Function to fetch a random city's weather
+function randomCity() {
+  const cities = [
+    "New York",
+    "London",
+    "Paris",
+    "Tokyo",
+    "Sydney",
+    "Dubai",
+    "Rome",
+    "Berlin",
+    "Toronto",
+    "Los Angeles",
+  ];
+  const city = cities[Math.floor(Math.random() * cities.length)];
+  getWeather(city);
 }
 
 window.onload = initializeApp;
